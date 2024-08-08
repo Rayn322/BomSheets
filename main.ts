@@ -2,14 +2,22 @@
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 import { pickFile } from '@ayonli/jsext/dialog';
 
-const file = (await pickFile()) as string | null;
+const file = Deno.args[0] || ((await pickFile()) as string | null);
 
 if (!file) {
 	console.log('No file selected');
 	Deno.exit(0);
 }
 
-const workbook = XLSX.readFile(file);
+let workbook: XLSX.WorkBook;
+
+try {
+	workbook = XLSX.readFile(file);
+} catch (e) {
+	console.error("Couldn't read file", e);
+	Deno.exit(1);
+}
+
 const firstSheetName = workbook.SheetNames[0];
 
 const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
