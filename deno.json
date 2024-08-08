@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "@ayonli/jsext": "jsr:@ayonli/jsext@^0.9.56"
+  }
+}
