@@ -28,5 +28,3 @@ export function cleanUnits(value: string) {
 
 	return `${number}${firstChar}${secondChar ?? ''}${rest}`;
 }
-
-console.log(cleanUnits('123p'));
