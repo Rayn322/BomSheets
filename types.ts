@@ -14,6 +14,7 @@ export interface Categorized {
 	capacitors: Capacitor[];
 	resistors: Resistor[];
 	others: SheetRow[];
+	died: SheetRow[];
 }
 
 export interface Capacitor {
