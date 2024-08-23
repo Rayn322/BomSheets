@@ -13,19 +13,20 @@ export function cleanUnits(value: string) {
 		return value;
 	}
 
-	const unitArr = unit[0].split('');
+	// get out of regex result array
+	const unitStr = unit[0];
+	const firstChar = unitStr[0].toLowerCase();
+	let secondChar = unitStr[1]?.toLowerCase();
+	const rest = unitStr.slice(2);
 
-	unitArr[0] = unitArr[0].toLowerCase();
-
-	if (unitArr[0] === 'u' || unitArr[0] === 'n' || unitArr[0] === 'p') {
-		if (unitArr.length == 1) {
-			unitArr.push('F');
-		} else if (unitArr.length == 2) {
-			unitArr[1] = unitArr[1].toUpperCase();
+	// attempt to only capitalize when necessary
+	if (firstChar === 'u' || firstChar === 'n' || firstChar === 'p') {
+		if (secondChar === 'f' || !secondChar) {
+			secondChar = 'F';
 		}
 	}
 
-	return `${number}${unitArr.join('')}`;
+	return `${number}${firstChar}${secondChar ?? ''}${rest}`;
 }
 
-console.log(cleanUnits('0.1uf'));
+console.log(cleanUnits('123p'));
