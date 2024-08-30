@@ -3,6 +3,7 @@
   "packages": {
     "specifiers": {
       "jsr:@ayonli/jsext@^0.9.56": "jsr:@ayonli/jsext@0.9.56",
+      "npm:@types/js-quantities": "npm:@types/js-quantities@1.6.6",
       "npm:@types/node": "npm:@types/node@18.16.19",
       "npm:iconv-lite@^0.6.3": "npm:iconv-lite@0.6.3",
       "npm:js-quantities": "npm:js-quantities@1.8.0",
@@ -24,6 +25,10 @@
         "dependencies": {
           "regenerator-runtime": "regenerator-runtime@0.14.1"
         }
+      },
+      "@types/js-quantities@1.6.6": {
+        "integrity": "sha512-k2Q8/Avj4Oz50flfTnfVGnUCkt7OYQ3U+lfQVELE/x5mdbwChZ7fM0wpUpVWzbuSL8kIYt9ZsFQ0RFNBv8T3Qw==",
+        "dependencies": {}
       },
       "@types/node@18.16.19": {
         "integrity": "sha512-IXl7o+R9iti9eBW4Wg2hx1xQDig183jj7YLn8F7udNceyfkbn1ZxmzZXuak20gR40D7pIkIY1kYGx5VIGbaHKA==",

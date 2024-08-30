@@ -3,6 +3,7 @@ import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 import { pickFile } from '@ayonli/jsext/dialog';
 import { Categorized, SheetJson } from './types.ts';
 import { cleanUnits, isValidRow } from './util.ts';
+// @deno-types="npm:@types/js-quantities"
 import Qty from 'npm:js-quantities/esm';
 
 const file = Deno.args[0] || ((await pickFile()) as string | null);
@@ -42,36 +43,41 @@ for (const row of json) {
 	// sticking with capacitors for now but probably wont keep this structure
 	if (row.Comment == 'Capacitor') {
 		if (typeof row['Total Quant'] === 'number') {
-			let died = false;
+			let badValue = false;
+			let value: Qty | null = null;
+
+			try {
+				value = row.Value ? Qty(cleanUnits(row.Value)) : null;
+			} catch (e) {
+				console.error('Error parsing value', row.Value);
+				badValue = true;
+			}
+
+			// set aside for now
+			if (badValue || !value) {
+				categories.died.push(row);
+				continue;
+			}
 
 			// look at voltage?
 			const capacitor = categories.capacitors.find((c) => {
 				let valueMatches = false;
 
-				// TODO: handle errors, check what units are failing
 				try {
-					// KEEPS LOOPING OVER BROKEN BAD UNITS AND BREAKS ALL FUTURE LOOPS
-					// move off ternary to better try/catch
-					const valueA = c.Value ? Qty(cleanUnits(c.Value)) : null;
-					const valueB = row.Value ? Qty(cleanUnits(row.Value)) : null;
+					const otherValue = c.Value ? Qty(cleanUnits(c.Value)) : null;
 
-					valueMatches = valueA === valueB || valueA.eq(valueB);
+					if (!otherValue) {
+						return false;
+					}
 
-					died = true;
-				} catch (e) {
-					console.error('Error comparing values', e);
+					valueMatches = value === otherValue || value.eq(otherValue);
+				} catch (_e) {
+					console.error('Error comparing values');
+					return false;
 				}
 
 				return valueMatches && c.Footprint === row.Footprint;
 			});
-
-			// set aside for now
-			if (died) {
-				categories.died.push(row);
-
-				died = false;
-				continue;
-			}
 
 			if (capacitor) {
 				capacitor.Quantity += row['Total Quant'];
