@@ -6,6 +6,7 @@ import { cleanUnits, isValidRow } from './util.ts';
 // @deno-types="npm:@types/js-quantities"
 import Qty from 'npm:js-quantities/esm';
 
+// not restricting file type, who cares
 const file = Deno.args[0] || ((await pickFile()) as string | null);
 
 if (!file) {
