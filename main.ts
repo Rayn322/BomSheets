@@ -82,9 +82,11 @@ for (const row of json) {
 			if (capacitor) {
 				capacitor.Quantity += row['Total Quant'];
 			} else {
+				const cleanValue = row.Value ? cleanUnits(row.Value) : undefined;
+
 				categories.capacitors.push({
 					Quantity: row['Total Quant'],
-					Value: row.Value,
+					Value: cleanValue,
 					Voltage: row.Voltage,
 					Comment: row.Comment,
 					Footprint: row.Footprint,
