@@ -5,9 +5,11 @@
       "jsr:@ayonli/jsext@^0.9.56": "jsr:@ayonli/jsext@0.9.56",
       "npm:@types/js-quantities": "npm:@types/js-quantities@1.6.6",
       "npm:@types/node": "npm:@types/node@18.16.19",
+      "npm:@types/parse-unit": "npm:@types/parse-unit@1.0.3",
       "npm:iconv-lite@^0.6.3": "npm:iconv-lite@0.6.3",
       "npm:js-quantities": "npm:js-quantities@1.8.0",
       "npm:mathjs": "npm:mathjs@13.0.3",
+      "npm:parse-unit": "npm:parse-unit@1.0.1",
       "npm:sudo-prompt@^9.2.1": "npm:sudo-prompt@9.2.1"
     },
     "jsr": {
@@ -32,6 +34,10 @@
       },
       "@types/node@18.16.19": {
         "integrity": "sha512-IXl7o+R9iti9eBW4Wg2hx1xQDig183jj7YLn8F7udNceyfkbn1ZxmzZXuak20gR40D7pIkIY1kYGx5VIGbaHKA==",
+        "dependencies": {}
+      },
+      "@types/parse-unit@1.0.3": {
+        "integrity": "sha512-huu6LsYM5YB1cJnMXZuZ3zjQ7pakbnGu0WRq+QQ7jmDDVenenpG8B5DFAcbPMf2RTRUanWt/GvWMm/bW5yd/UA==",
         "dependencies": {}
       },
       "complex.js@2.1.1": {
@@ -77,6 +83,10 @@
           "tiny-emitter": "tiny-emitter@2.1.0",
           "typed-function": "typed-function@4.2.1"
         }
+      },
+      "parse-unit@1.0.1": {
+        "integrity": "sha512-hrqldJHokR3Qj88EIlV/kAyAi/G5R2+R56TBANxNMy0uPlYcttx0jnMW6Yx5KsKPSbC3KddM/7qQm3+0wEXKxg==",
+        "dependencies": {}
       },
       "regenerator-runtime@0.14.1": {
         "integrity": "sha512-dYnhHh0nJoMfnkZs6GmmhFknAGRrLznOu5nc9ML+EJxGvrx6H7teuevqVqCuPcPK//3eDrrjQhehXVx9cnkGdw==",
