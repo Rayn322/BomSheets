@@ -1,3 +1,5 @@
+// @deno-types="npm:@types/parse-unit"
+import parse from 'npm:parse-unit';
 import { SheetRow } from './types.ts';
 
 export function isValidRow(row: SheetRow) {
@@ -5,19 +7,21 @@ export function isValidRow(row: SheetRow) {
 }
 
 export function cleanUnits(value: string) {
-	// copilot generated regex idk
-	const number = parseFloat(value);
-	const unit = value.match(/[a-zA-Z]+/g);
+	// downloading regex...
+	const [number, unit] = parse(value);
 
 	if (!number || !isFinite(number) || !unit) {
 		return value;
 	}
 
+	if (unit.toLowerCase() === 'k') {
+		return `${number * 1000}`;
+	}
+
 	// get out of regex result array
-	const unitStr = unit[0];
-	const firstChar = unitStr[0].toLowerCase();
-	let secondChar = unitStr[1]?.toLowerCase();
-	const rest = unitStr.slice(2);
+	const firstChar = unit[0].toLowerCase();
+	let secondChar = unit[1]?.toLowerCase();
+	const rest = unit.slice(2);
 
 	// attempt to only capitalize when necessary
 	if (firstChar === 'u' || firstChar === 'n' || firstChar === 'p') {
