@@ -2,7 +2,7 @@
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 import { pickFile } from '@ayonli/jsext/dialog';
 import { Categorized, SheetJson } from './types.ts';
-import { cleanUnits, isValidRow } from './util.ts';
+import { cleanUnits } from './util.ts';
 // @deno-types="npm:@types/js-quantities"
 import Qty from 'npm:js-quantities/esm';
 
@@ -37,98 +37,97 @@ const categories: Categorized = {
 };
 
 for (const row of json) {
-	if (!isValidRow(row)) {
+	// check for valid row
+	if (typeof row.Quantity !== 'number' || typeof row['Total Quant'] !== 'number') {
 		continue;
 	}
 
 	// sticking with capacitors for now but probably wont keep this structure
 	if (row.Comment === 'Capacitor' || row.Comment === 'Resistor') {
-		if (typeof row['Total Quant'] === 'number') {
-			let badValue = false;
-			let value: Qty | null = null;
+		let badValue = false;
+		let value: Qty | null = null;
+
+		try {
+			value = row.Value ? Qty(cleanUnits(row.Value)) : null;
+		} catch (_e) {
+			console.error('Error parsing value', row.Value);
+			badValue = true;
+		}
+
+		// set aside for now
+		if (badValue || !value) {
+			categories.died.push(row);
+			continue;
+		}
+
+		// look at voltage?
+		const capacitor = categories.capacitors.find((c) => {
+			let valueMatches = false;
 
 			try {
-				value = row.Value ? Qty(cleanUnits(row.Value)) : null;
-			} catch (_e) {
-				console.error('Error parsing value', row.Value);
-				badValue = true;
-			}
+				const otherValue = c.Value ? Qty(cleanUnits(c.Value)) : null;
 
-			// set aside for now
-			if (badValue || !value) {
-				categories.died.push(row);
-				continue;
-			}
-
-			// look at voltage?
-			const capacitor = categories.capacitors.find((c) => {
-				let valueMatches = false;
-
-				try {
-					const otherValue = c.Value ? Qty(cleanUnits(c.Value)) : null;
-
-					if (!otherValue) {
-						return false;
-					}
-
-					valueMatches =
-						value === otherValue || (value.isCompatible(otherValue) && value.eq(otherValue));
-				} catch (e) {
-					console.error('Error comparing values', c.Value, 'with', value.toString());
-					console.error(e);
+				if (!otherValue) {
 					return false;
 				}
 
-				return valueMatches && c.Footprint === row.Footprint;
-			});
+				valueMatches =
+					value === otherValue || (value.isCompatible(otherValue) && value.eq(otherValue));
+			} catch (e) {
+				console.error('Error comparing values', c.Value, 'with', value.toString());
+				console.error(e);
+				return false;
+			}
 
-			// same logic as capacitors for now BUT CHANGE AT SOME POINT
-			const resistor = categories.resistors.find((c) => {
-				let valueMatches = false;
+			return valueMatches && c.Footprint === row.Footprint;
+		});
 
-				try {
-					const otherValue = c.Value ? Qty(cleanUnits(c.Value)) : null;
+		// same logic as capacitors for now BUT CHANGE AT SOME POINT?
+		const resistor = categories.resistors.find((c) => {
+			let valueMatches = false;
 
-					if (!otherValue) {
-						return false;
-					}
+			try {
+				const otherValue = c.Value ? Qty(cleanUnits(c.Value)) : null;
 
-					valueMatches =
-						value === otherValue || (value.isCompatible(otherValue) && value.eq(otherValue));
-				} catch (e) {
-					console.error('Error comparing values', c.Value, 'with', value.toString());
-					console.error(e);
+				if (!otherValue) {
 					return false;
 				}
 
-				return valueMatches && c.Footprint === row.Footprint;
-			});
+				valueMatches =
+					value === otherValue || (value.isCompatible(otherValue) && value.eq(otherValue));
+			} catch (e) {
+				console.error('Error comparing values', c.Value, 'with', value.toString());
+				console.error(e);
+				return false;
+			}
 
-			if (capacitor) {
-				capacitor.Quantity += row['Total Quant'];
-			} else if (resistor) {
-				resistor.Quantity += row['Total Quant'];
+			return valueMatches && c.Footprint === row.Footprint;
+		});
+
+		if (capacitor) {
+			capacitor.Quantity += row['Total Quant'];
+		} else if (resistor) {
+			resistor.Quantity += row['Total Quant'];
+		} else {
+			const cleanValue = row.Value ? cleanUnits(row.Value) : undefined;
+
+			if (row.Comment === 'Capacitor') {
+				categories.capacitors.push({
+					Quantity: row['Total Quant'],
+					Value: cleanValue,
+					Voltage: row.Voltage,
+					Comment: row.Comment,
+					Footprint: row.Footprint,
+				});
+			} else if (row.Comment === 'Resistor') {
+				categories.resistors.push({
+					Quantity: row['Total Quant'],
+					Value: cleanValue,
+					Comment: row.Comment,
+					Footprint: row.Footprint,
+				});
 			} else {
-				const cleanValue = row.Value ? cleanUnits(row.Value) : undefined;
-
-				if (row.Comment === 'Capacitor') {
-					categories.capacitors.push({
-						Quantity: row['Total Quant'],
-						Value: cleanValue,
-						Voltage: row.Voltage,
-						Comment: row.Comment,
-						Footprint: row.Footprint,
-					});
-				} else if (row.Comment === 'Resistor') {
-					categories.resistors.push({
-						Quantity: row['Total Quant'],
-						Value: cleanValue,
-						Comment: row.Comment,
-						Footprint: row.Footprint,
-					});
-				} else {
-					categories.others.push(row);
-				}
+				categories.others.push(row);
 			}
 		}
 	}

@@ -1,10 +1,5 @@
 // @deno-types="npm:@types/parse-unit"
 import parse from 'npm:parse-unit';
-import { SheetRow } from './types.ts';
-
-export function isValidRow(row: SheetRow) {
-	return typeof row.Quantity === 'number';
-}
 
 export function cleanUnits(value: string) {
 	// downloading regex...
