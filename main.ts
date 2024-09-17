@@ -42,7 +42,8 @@ for (const row of json) {
 		continue;
 	}
 
-	// sticking with capacitors for now but probably wont keep this structure
+	// TODO: consider calling a "compareCapacitor" function, I don't think calling Qty repatedly would be that bad
+	// temporarily only looking at capacitors and resistors
 	if (row.Comment === 'Capacitor' || row.Comment === 'Resistor') {
 		let badValue = false;
 		let value: Qty | null = null;
@@ -79,7 +80,7 @@ for (const row of json) {
 				return false;
 			}
 
-			return valueMatches && c.Footprint === row.Footprint;
+			return valueMatches && c.Footprint === row.Footprint && c.Voltage === row.Voltage;
 		});
 
 		// same logic as capacitors for now BUT CHANGE AT SOME POINT?

@@ -1,6 +1,7 @@
 // @deno-types="npm:@types/parse-unit"
 import parse from 'npm:parse-unit';
 
+// attempts to format units so that Qty is happy
 export function cleanUnits(value: string) {
 	// downloading regex...
 	const [number, unit] = parse(value);
