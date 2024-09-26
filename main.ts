@@ -1,7 +1,7 @@
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 import { pickFile } from '@ayonli/jsext/dialog';
-import { Categorized, SheetJson } from './types.ts';
+import { Categorized, SheetJson, SheetRow } from './types.ts';
 import { cleanUnits } from './util.ts';
 // @deno-types="npm:@types/js-quantities"
 import Qty from 'npm:js-quantities/esm';
@@ -32,7 +32,7 @@ const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
 const categories: Categorized = {
 	capacitors: [],
 	resistors: [],
-	others: [], // add more later
+	others: [],
 	died: [],
 };
 
@@ -42,9 +42,9 @@ for (const row of json) {
 		continue;
 	}
 
-	// TODO: consider calling a "compareCapacitor" function, I don't think calling Qty repatedly would be that bad
+	// TODO: consider extracting to a "compareCapacitor" function, I don't think calling Qty repatedly would be that bad
 	// temporarily only looking at capacitors and resistors
-	if (row.Comment === 'Capacitor' || row.Comment === 'Resistor') {
+	if (true) {
 		let badValue = false;
 		let value: Qty | null = null;
 
@@ -56,6 +56,7 @@ for (const row of json) {
 		}
 
 		// set aside for now
+		// TODO: bad idea this screws up everything else after cap and res
 		if (badValue || !value) {
 			categories.died.push(row);
 			continue;
@@ -83,7 +84,7 @@ for (const row of json) {
 			return valueMatches && c.Footprint === row.Footprint && c.Voltage === row.Voltage;
 		});
 
-		// same logic as capacitors for now BUT CHANGE AT SOME POINT?
+		// same logic as capacitors for now minus voltage
 		const resistor = categories.resistors.find((c) => {
 			let valueMatches = false;
 
@@ -104,6 +105,8 @@ for (const row of json) {
 
 			return valueMatches && c.Footprint === row.Footprint;
 		});
+
+		// some catch all that just straight up compares all the rows
 
 		if (capacitor) {
 			capacitor.Quantity += row['Total Quant'];
@@ -128,15 +131,65 @@ for (const row of json) {
 					Footprint: row.Footprint,
 				});
 			} else {
-				categories.others.push(row);
+				categories.others.push({
+					Quantity: row['Total Quant'],
+					Value: row.Value,
+					Voltage: row.Voltage,
+					Tolerance: row.Tolerance,
+					Comment: row.Comment,
+					Footprint: row.Footprint,
+				});
 			}
 		}
 	}
 }
 
-// console.log(categories);
+console.log(categories);
 
-const sheet = XLSX.utils.json_to_sheet(categories.capacitors, { cellStyles: true });
+// flatten so i can just use json_to_sheet
+const output: SheetRow[] = [];
+for (const item of categories.capacitors) {
+	output.push({
+		Quantity: item.Quantity,
+		Value: item.Value,
+		Voltage: item.Voltage,
+		Tolerance: undefined,
+		Comment: item.Comment,
+		Footprint: item.Footprint,
+	});
+}
+for (const item of categories.resistors) {
+	output.push({
+		Quantity: item.Quantity,
+		Value: item.Value,
+		Voltage: undefined,
+		Tolerance: undefined,
+		Comment: item.Comment,
+		Footprint: item.Footprint,
+	});
+}
+for (const item of categories.others) {
+	output.push({
+		Quantity: item.Quantity,
+		Value: item.Value,
+		Voltage: item.Voltage,
+		Tolerance: item.Tolerance,
+		Comment: item.Comment,
+		Footprint: item.Footprint,
+	});
+}
+for (const item of categories.died) {
+	output.push({
+		Quantity: item.Quantity,
+		Value: item.Value,
+		Voltage: item.Voltage,
+		Tolerance: item.Tolerance,
+		Comment: item.Comment,
+		Footprint: item.Footprint,
+	});
+}
+
+const sheet = XLSX.utils.json_to_sheet(output, { cellStyles: true });
 
 // increase column width
 // can calculate max characters later if i feel like it maybe
@@ -144,6 +197,7 @@ sheet['!cols'] = [
 	{ wch: 20 }, // Quantity
 	{ wch: 20 }, // Value
 	{ wch: 20 }, // Voltage
+	{ wch: 20 }, // Tolerance
 	{ wch: 20 }, // Comment
 	{ wch: 20 }, // Footprint
 ];
