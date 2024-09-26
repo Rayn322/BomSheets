@@ -134,4 +134,21 @@ for (const row of json) {
 	}
 }
 
-console.log(categories);
+// console.log(categories);
+
+const sheet = XLSX.utils.json_to_sheet(categories.capacitors, { cellStyles: true });
+
+// increase column width
+// can calculate max characters later if i feel like it maybe
+sheet['!cols'] = [
+	{ wch: 20 }, // Quantity
+	{ wch: 20 }, // Value
+	{ wch: 20 }, // Voltage
+	{ wch: 20 }, // Comment
+	{ wch: 20 }, // Footprint
+];
+
+//
+
+const outWorkbook = XLSX.utils.book_new(sheet);
+XLSX.writeFile(outWorkbook, 'output.xlsx', { cellStyles: true });
