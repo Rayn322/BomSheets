@@ -202,7 +202,5 @@ sheet['!cols'] = [
 	{ wch: 20 }, // Footprint
 ];
 
-//
-
 const outWorkbook = XLSX.utils.book_new(sheet);
 XLSX.writeFile(outWorkbook, 'output.xlsx', { cellStyles: true });
