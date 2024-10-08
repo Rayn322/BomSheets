@@ -1,4 +1,4 @@
-Download from releases
+Download from [releases](https://github.com/Rayn322/BomSheets/releases)
 
 OR
 
