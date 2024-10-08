@@ -1,10 +1,10 @@
 // @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
+// @deno-types="npm:@types/parse-unit"
+import parse from 'npm:parse-unit';
 import { pickFile } from '@ayonli/jsext/dialog';
 import { Categorized, SheetJson, SheetRow } from './types.ts';
-import { cleanUnits } from './util.ts';
-// @deno-types="npm:@types/js-quantities"
-import Qty from 'npm:js-quantities/esm';
+import { cleanUnits, compareCapacitor, compareResistor } from './util.ts';
 
 // not restricting file type, who cares
 const file = Deno.args[0] || ((await pickFile()) as string | null);
@@ -42,71 +42,14 @@ for (const row of json) {
 		continue;
 	}
 
-	// TODO: consider extracting to a "compareCapacitor" function, I don't think calling Qty repatedly would be that bad
 	// temporarily only looking at capacitors and resistors
-	if (true) {
-		let badValue = false;
-		let value: Qty | null = null;
+	// if (true) {
+	if (row.Comment === 'Capacitor' || row.Comment === 'Resistor') {
+		const capacitor = categories.capacitors.find((c) => compareCapacitor(c, row));
 
-		try {
-			value = row.Value ? Qty(cleanUnits(row.Value)) : null;
-		} catch (_e) {
-			console.error('Error parsing value', row.Value);
-			badValue = true;
-		}
+		const resistor = categories.resistors.find((r) => compareResistor(r, row));
 
-		// set aside for now
-		// TODO: bad idea this screws up everything else after cap and res
-		if (badValue || !value) {
-			categories.died.push(row);
-			continue;
-		}
-
-		// look at voltage?
-		const capacitor = categories.capacitors.find((c) => {
-			let valueMatches = false;
-
-			try {
-				const otherValue = c.Value ? Qty(cleanUnits(c.Value)) : null;
-
-				if (!otherValue) {
-					return false;
-				}
-
-				valueMatches =
-					value === otherValue || (value.isCompatible(otherValue) && value.eq(otherValue));
-			} catch (e) {
-				console.error('Error comparing values', c.Value, 'with', value.toString());
-				console.error(e);
-				return false;
-			}
-
-			return valueMatches && c.Footprint === row.Footprint && c.Voltage === row.Voltage;
-		});
-
-		// same logic as capacitors for now minus voltage
-		const resistor = categories.resistors.find((c) => {
-			let valueMatches = false;
-
-			try {
-				const otherValue = c.Value ? Qty(cleanUnits(c.Value)) : null;
-
-				if (!otherValue) {
-					return false;
-				}
-
-				valueMatches =
-					value === otherValue || (value.isCompatible(otherValue) && value.eq(otherValue));
-			} catch (e) {
-				console.error('Error comparing values', c.Value, 'with', value.toString());
-				console.error(e);
-				return false;
-			}
-
-			return valueMatches && c.Footprint === row.Footprint;
-		});
-
-		// some catch all that just straight up compares all the rows
+		// TODO: some catch all that just straight up compares all the rows
 
 		if (capacitor) {
 			capacitor.Quantity += row['Total Quant'];
@@ -126,7 +69,7 @@ for (const row of json) {
 			} else if (row.Comment === 'Resistor') {
 				categories.resistors.push({
 					Quantity: row['Total Quant'],
-					Value: cleanValue,
+					Value: cleanValue ? `${parse(cleanValue)[0]}k` : undefined, // stupid but works
 					Comment: row.Comment,
 					Footprint: row.Footprint,
 				});
