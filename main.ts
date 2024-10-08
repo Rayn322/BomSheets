@@ -33,7 +33,6 @@ const categories: Categorized = {
 	capacitors: [],
 	resistors: [],
 	others: [],
-	died: [],
 };
 
 for (const row of json) {
@@ -42,52 +41,62 @@ for (const row of json) {
 		continue;
 	}
 
-	// temporarily only looking at capacitors and resistors
-	// if (true) {
-	if (row.Comment === 'Capacitor' || row.Comment === 'Resistor') {
-		const capacitor = categories.capacitors.find((c) => compareCapacitor(c, row));
+	const capacitor = categories.capacitors.find((c) => compareCapacitor(c, row));
 
-		const resistor = categories.resistors.find((r) => compareResistor(r, row));
+	const resistor = categories.resistors.find((r) => compareResistor(r, row));
 
-		// TODO: some catch all that just straight up compares all the rows
+	// catch all that just straight up compares all the rows
+	const fallback = categories.others.find((o) => {
+		return (
+			o.Comment === row.Comment &&
+			o.Footprint === row.Footprint &&
+			o.Value === row.Value &&
+			o.Voltage === row.Voltage &&
+			o.Tolerance === row.Tolerance
+		);
+	});
 
-		if (capacitor) {
-			capacitor.Quantity += row['Total Quant'];
-		} else if (resistor) {
-			resistor.Quantity += row['Total Quant'];
+	if (capacitor) {
+		capacitor.Quantity += row['Total Quant'];
+	} else if (resistor) {
+		resistor.Quantity += row['Total Quant'];
+	} else if (
+		fallback &&
+		fallback.Quantity &&
+		row['Total Quant'] &&
+		typeof fallback.Quantity === 'number'
+	) {
+		fallback.Quantity += row['Total Quant'];
+	} else {
+		const cleanValue = row.Value ? cleanUnits(row.Value) : undefined;
+
+		if (row.Comment === 'Capacitor') {
+			categories.capacitors.push({
+				Quantity: row['Total Quant'],
+				Value: cleanValue,
+				Voltage: row.Voltage,
+				Comment: row.Comment,
+				Footprint: row.Footprint,
+			});
+		} else if (row.Comment === 'Resistor') {
+			categories.resistors.push({
+				Quantity: row['Total Quant'],
+				Value: cleanValue ? `${parse(cleanValue)[0]}k` : undefined, // stupid but works
+				Comment: row.Comment,
+				Footprint: row.Footprint,
+			});
 		} else {
-			const cleanValue = row.Value ? cleanUnits(row.Value) : undefined;
-
-			if (row.Comment === 'Capacitor') {
-				categories.capacitors.push({
-					Quantity: row['Total Quant'],
-					Value: cleanValue,
-					Voltage: row.Voltage,
-					Comment: row.Comment,
-					Footprint: row.Footprint,
-				});
-			} else if (row.Comment === 'Resistor') {
-				categories.resistors.push({
-					Quantity: row['Total Quant'],
-					Value: cleanValue ? `${parse(cleanValue)[0]}k` : undefined, // stupid but works
-					Comment: row.Comment,
-					Footprint: row.Footprint,
-				});
-			} else {
-				categories.others.push({
-					Quantity: row['Total Quant'],
-					Value: row.Value,
-					Voltage: row.Voltage,
-					Tolerance: row.Tolerance,
-					Comment: row.Comment,
-					Footprint: row.Footprint,
-				});
-			}
+			categories.others.push({
+				Quantity: row['Total Quant'],
+				Value: row.Value,
+				Voltage: row.Voltage,
+				Tolerance: row.Tolerance,
+				Comment: row.Comment,
+				Footprint: row.Footprint,
+			});
 		}
 	}
 }
-
-console.log(categories);
 
 // flatten so i can just use json_to_sheet
 const output: SheetRow[] = [];
@@ -112,16 +121,6 @@ for (const item of categories.resistors) {
 	});
 }
 for (const item of categories.others) {
-	output.push({
-		Quantity: item.Quantity,
-		Value: item.Value,
-		Voltage: item.Voltage,
-		Tolerance: item.Tolerance,
-		Comment: item.Comment,
-		Footprint: item.Footprint,
-	});
-}
-for (const item of categories.died) {
 	output.push({
 		Quantity: item.Quantity,
 		Value: item.Value,
