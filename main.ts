@@ -2,40 +2,19 @@
 import * as XLSX from 'https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs';
 // @deno-types="npm:@types/parse-unit"
 import parse from 'npm:parse-unit';
-import { pickFile } from '@ayonli/jsext/dialog';
+import { pickFiles } from '@ayonli/jsext/dialog';
 import { Categorized, SheetJson, SheetRow } from './types.ts';
 import { cleanUnits, compareCapacitor, compareResistor } from './util.ts';
+
+const fileNames = Deno.args.length > 0 ? Deno.args : ((await pickFiles()) as string[]);
+if (fileNames.length === 0) {
+	console.error('No files provided');
+	Deno.exit(1);
+}
 
 const jsonList = [];
 
 for (const fileName of Deno.args) {
-	let workbook: XLSX.WorkBook;
-
-	try {
-		workbook = XLSX.readFile(fileName);
-	} catch (e) {
-		console.error("Couldn't read file", e);
-		Deno.exit(1);
-	}
-
-	const firstSheetName = workbook.SheetNames[0];
-
-	const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
-		range: 'A1:I999', // 999 is just a big number ig
-	}) as SheetJson;
-
-	jsonList.push(json);
-}
-
-// who cares
-if (jsonList.length === 0) {
-	const fileName = (await pickFile()) as string | null;
-
-	if (!fileName) {
-		console.error('No file selected');
-		Deno.exit(1);
-	}
-
 	let workbook: XLSX.WorkBook;
 
 	try {
