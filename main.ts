@@ -6,28 +6,53 @@ import { pickFile } from '@ayonli/jsext/dialog';
 import { Categorized, SheetJson, SheetRow } from './types.ts';
 import { cleanUnits, compareCapacitor, compareResistor } from './util.ts';
 
-// not restricting file type, who cares
-const file = Deno.args[0] || ((await pickFile()) as string | null);
+const jsonList = [];
 
-if (!file) {
-	console.log('No file selected');
-	Deno.exit(0);
+for (const fileName of Deno.args) {
+	let workbook: XLSX.WorkBook;
+
+	try {
+		workbook = XLSX.readFile(fileName);
+	} catch (e) {
+		console.error("Couldn't read file", e);
+		Deno.exit(1);
+	}
+
+	const firstSheetName = workbook.SheetNames[0];
+
+	const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
+		range: 'A1:I999', // 999 is just a big number ig
+	}) as SheetJson;
+
+	jsonList.push(json);
 }
 
-let workbook: XLSX.WorkBook;
+// who cares
+if (jsonList.length === 0) {
+	const fileName = (await pickFile()) as string | null;
 
-try {
-	workbook = XLSX.readFile(file);
-} catch (e) {
-	console.error("Couldn't read file", e);
-	Deno.exit(1);
+	if (!fileName) {
+		console.error('No file selected');
+		Deno.exit(1);
+	}
+
+	let workbook: XLSX.WorkBook;
+
+	try {
+		workbook = XLSX.readFile(fileName);
+	} catch (e) {
+		console.error("Couldn't read file", e);
+		Deno.exit(1);
+	}
+
+	const firstSheetName = workbook.SheetNames[0];
+
+	const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
+		range: 'A1:I999', // 999 is just a big number ig
+	}) as SheetJson;
+
+	jsonList.push(json);
 }
-
-const firstSheetName = workbook.SheetNames[0];
-
-const json = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], {
-	range: 'B2:H999', // 999 is just a big number ig
-}) as SheetJson;
 
 const categories: Categorized = {
 	capacitors: [],
@@ -35,65 +60,67 @@ const categories: Categorized = {
 	others: [],
 };
 
-for (const row of json) {
-	// check for valid row
-	if (typeof row.Quantity !== 'number' || typeof row['Total Quant'] !== 'number') {
-		continue;
-	}
+for (const json of jsonList) {
+	for (const row of json) {
+		// check for valid row
+		if (typeof row.Quantity !== 'number') {
+			continue;
+		}
 
-	const capacitor = categories.capacitors.find((c) => compareCapacitor(c, row));
+		const capacitor = categories.capacitors.find((c) => compareCapacitor(c, row));
 
-	const resistor = categories.resistors.find((r) => compareResistor(r, row));
+		const resistor = categories.resistors.find((r) => compareResistor(r, row));
 
-	// catch all that just straight up compares all the rows
-	const fallback = categories.others.find((o) => {
-		return (
-			o.Comment === row.Comment &&
-			o.Footprint === row.Footprint &&
-			o.Value === row.Value &&
-			o.Voltage === row.Voltage &&
-			o.Tolerance === row.Tolerance
-		);
-	});
+		// catch all that just straight up compares all the rows
+		const fallback = categories.others.find((o) => {
+			return (
+				o.Comment === row.Comment &&
+				o.Footprint === row.Footprint &&
+				o.Value === row.Value &&
+				o.Voltage === row.Voltage &&
+				o.Tolerance === row.Tolerance
+			);
+		});
 
-	if (capacitor) {
-		capacitor.Quantity += row['Total Quant'];
-	} else if (resistor) {
-		resistor.Quantity += row['Total Quant'];
-	} else if (
-		fallback &&
-		fallback.Quantity &&
-		row['Total Quant'] &&
-		typeof fallback.Quantity === 'number'
-	) {
-		fallback.Quantity += row['Total Quant'];
-	} else {
-		const cleanValue = row.Value ? cleanUnits(row.Value) : undefined;
-
-		if (row.Comment === 'Capacitor') {
-			categories.capacitors.push({
-				Quantity: row['Total Quant'],
-				Value: cleanValue,
-				Voltage: row.Voltage,
-				Comment: row.Comment,
-				Footprint: row.Footprint,
-			});
-		} else if (row.Comment === 'Resistor') {
-			categories.resistors.push({
-				Quantity: row['Total Quant'],
-				Value: cleanValue ? `${parse(cleanValue)[0]}k` : undefined, // stupid but works
-				Comment: row.Comment,
-				Footprint: row.Footprint,
-			});
+		if (capacitor) {
+			capacitor.Quantity += row.Quantity;
+		} else if (resistor) {
+			resistor.Quantity += row.Quantity;
+		} else if (
+			fallback &&
+			fallback.Quantity &&
+			row.Quantity &&
+			typeof fallback.Quantity === 'number'
+		) {
+			fallback.Quantity += row.Quantity;
 		} else {
-			categories.others.push({
-				Quantity: row['Total Quant'],
-				Value: row.Value,
-				Voltage: row.Voltage,
-				Tolerance: row.Tolerance,
-				Comment: row.Comment,
-				Footprint: row.Footprint,
-			});
+			const cleanValue = row.Value ? cleanUnits(row.Value) : undefined;
+
+			if (row.Comment === 'Capacitor') {
+				categories.capacitors.push({
+					Quantity: row.Quantity,
+					Value: cleanValue,
+					Voltage: row.Voltage,
+					Comment: row.Comment,
+					Footprint: row.Footprint,
+				});
+			} else if (row.Comment === 'Resistor') {
+				categories.resistors.push({
+					Quantity: row.Quantity,
+					Value: cleanValue ? `${parse(cleanValue)[0]}k` : undefined, // stupid but works
+					Comment: row.Comment,
+					Footprint: row.Footprint,
+				});
+			} else {
+				categories.others.push({
+					Quantity: row.Quantity,
+					Value: row.Value,
+					Voltage: row.Voltage,
+					Tolerance: row.Tolerance,
+					Comment: row.Comment,
+					Footprint: row.Footprint,
+				});
+			}
 		}
 	}
 }
