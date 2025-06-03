@@ -14,7 +14,7 @@ if (fileNames.length === 0) {
 
 const jsonList = [];
 
-for (const fileName of Deno.args) {
+for (const fileName of fileNames) {
 	let workbook: XLSX.WorkBook;
 
 	try {
